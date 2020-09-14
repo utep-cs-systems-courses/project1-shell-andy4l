@@ -22,27 +22,58 @@ def forkProcess(rc, pid):
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
 
-    elif rc == 0:                   # child
-        os.write(1, ("Child: My pid==%d.  Parent's pid=%d\n" % (os.getpid(), pid)).encode())
-        args = ["wc", "p3-exec.py"]
-        for dir in re.split(":", os.environ['PATH']): # try each directory in the path
-            program = "%s/%s" % (dir, args[0])
-            os.write(1, ("Child:  ...trying to exec %s\n" % program).encode())
-            try:
-                os.execve(program, args, os.environ) # try to exec program
-            except FileNotFoundError:             # ...expected
-                pass                              # ...fail quietly
-
-        os.write(2, ("Child:    Could not exec %s\n" % args[0]).encode())
-        sys.exit(1)                 # terminate with error
+    elif rc == 0:   
+                      # child
+        
+        input = command.split("<")
+        
+        output = command.split(">")
+        print(len(output))
+        print(output)
+        #os.write(1, ("Child: My pid==%d.  Parent's pid=%d\n" % (os.getpid(), pid)).encode())
+        isDirect(input, output)
 
     else:                           # parent (forked ok)
-        os.write(1, ("Parent: My pid=%d.  Child's pid=%d\n" % (pid, rc)).encode())
+        #os.write(1, ("Parent: My pid=%d.  Child's pid=%d\n" % (pid, rc)).encode())
         childPidCode = os.wait()
-        os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
+        #os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
                  
 
+def isDirect(input, output):
+    # redirect child output
+    
+    if len(output) > 1:
+        input = output[0].split()
+        args = input[0].split()
+        os.close(1) # close 
+        os.open(output[1].strip(), os.O_CREAT | os.O_WRONLY)
+        os.set_inheritable(1, True)
 
+
+    else:
+        args = input[0].split()
+        
+
+    #if len(args) < 1:
+        #sys.exit(0)
+
+    # Try each directory in the path.
+    for dir in re.split(":", os.environ['PATH']):
+        # Checks if command is file path.
+        if "/" in args[0]:
+            program = args[0]
+        else:
+            program = "%s/%s" % (dir, args[0])
+
+        # Execute the program
+        try:
+            os.execve(program, args, os.environ)
+
+        except FileNotFoundError:
+            pass
+
+    os.write(2, ("Error: Child could not exec %s\n" % args[0]).encode())
+    sys.exit(1)                 # terminate with error
 
 while True:
 
@@ -67,7 +98,7 @@ while True:
         listFile()
         continue
 
-    if command == 'quit':
+    if command == 'exit':
         sys.exit()
         
     if "cwd" in command:
@@ -75,6 +106,6 @@ while True:
         continue
 
     pid = os.getpid()
-    os.write(1, ("About to fork (pid:%d)\n" % pid).encode())
+    #os.write(1, ("About to fork (pid:%d)\n" % pid).encode())
     rc = os.fork()
     forkProcess(rc, pid)
