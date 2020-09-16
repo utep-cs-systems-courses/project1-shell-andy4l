@@ -17,6 +17,8 @@ def getCWD():
     os.write(1, (cdir + "\n").encode())
     return
 
+# takes the rc of our fork, the read and write fd (if any) 
+# and a boolean expression to denote if our process is a pipe as parameters.
 def forkProcess(rc, pid, r, w, isPipe):
     # Checking if rc's value is less than 0.
     # If so thats an indication that the fork failes, and the shell
