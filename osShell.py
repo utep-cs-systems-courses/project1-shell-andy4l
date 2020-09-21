@@ -19,7 +19,7 @@ def getCWD():
 
 # takes the rc of our fork, the read and write fd (if any) 
 # and a boolean expression to denote if our process is a pipe as parameters.
-def forkProcess(rc, pid, r, w, isPipe):
+def forkProcess(rc, pid, r, w, isPipe, background):
     # Checking if rc's value is less than 0.
     # If so thats an indication that the fork failes, and the shell
     # returns to wait for more input
@@ -48,8 +48,8 @@ def forkProcess(rc, pid, r, w, isPipe):
         #os.write(1, ("Parent: My pid=%d.  Child's pid=%d\n" % (pid, rc)).encode())
         if isPipe:
             os.dup2(1, w, True)
-
-        childPidCode = os.wait()
+        if not background:
+            childPidCode = os.wait()
         #os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
                  
 
@@ -142,7 +142,13 @@ while True:
         getCWD()
         continue
     
+    background = False
+
+    if "&" in command:
+        command = command.split("&")[0]
+    background = True
+
     pid = os.getpid()
     #os.write(1, ("About to fork (pid:%d)\n" % pid).encode())
     rc = os.fork()
-    forkProcess(rc, pid, 0, 1, False)
+    forkProcess(rc, pid, 0, 1, False, background)
